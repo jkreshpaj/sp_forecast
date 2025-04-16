@@ -6,15 +6,18 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error
 
 # Constants
-A = 3.1
-eta_stc = 0.18
-gamma = 0.004
-delta = 0.1
-T_stc = 25.0
+AREA = 3.1                    # Panel area in square meters
+ETA_SYSTEM = 0.13             # Realistic system efficiency
+GAMMA = 0.004                 # Temperature loss coefficient
+DELTA = 0.1                   # Wind cooling coefficient
+T_STC = 25.0                  # Standard temperature (°C)
 
 def physics_power(row):
-    temp_correction = 1 - gamma * (row['temperature'] - T_stc - delta * row['wind_speed'])
-    return A * eta_stc * temp_correction * row['ghi']
+    """Estimate physical power output in MW based on irradiance and temperature"""
+    temp_correction = 1 - GAMMA * (row['temperature'] - T_STC - DELTA * row['wind_speed'])
+    corrected_efficiency = ETA_SYSTEM * temp_correction
+    power_mw = row['gti'] * AREA * corrected_efficiency / 1_000_000  # Convert W to MW
+    return max(power_mw, 0)
 
 def load_and_train_model(json_path='solar_data.json'):
     with open(json_path) as f:
@@ -39,6 +42,7 @@ def load_and_train_model(json_path='solar_data.json'):
 
 def predict_power(model, input_data):
     df = pd.DataFrame([input_data])
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['hour'] = df['timestamp'].dt.hour
     df['minute'] = df['timestamp'].dt.minute
 

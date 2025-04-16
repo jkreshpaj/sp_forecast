@@ -25,7 +25,7 @@ with st.form("input_form"):
     wind_speed = st.number_input("Wind Speed (m/s)", 0.0, 20.0, 1.2)
     gti = st.number_input("Global Tilted Irradiance (W/m²)", 0.0, 1500.0, 520.0)
     module_temp = st.number_input("Module Temperature (°C)", -20.0, 100.0, 30.0)
-    timestamp = st.time_input("Time of Measurement", datetime.now().time())
+    timestamp = st.time_input("Time of Measurement")
 
     submit = st.form_submit_button("⚡ Predict Power Output")
 
@@ -48,4 +48,3 @@ if submit:
     st.success(f"🔋 Forecasted Power Output: **{hybrid_power:.2f} MW**")
     st.info(f"🧮 Physics Estimate: {physics_estimate:.2f} MW")
     st.info(f"🎯 ML Residual Correction: {residual_est:.2f} MW")
-
