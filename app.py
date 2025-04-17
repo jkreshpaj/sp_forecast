@@ -4,11 +4,13 @@ import pandas as pd
 import numpy as np
 from pandas import json_normalize
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
 
 # Configuration
 SYS_CAPACITY = 62.2  # MW
 REF_TEMP = 25  # °C
-LOSS_COEFF = -0.0026  # per °C
+LOSS_COEFF = -0.004  # per °C
+SYSTEM_LOSSES = 0.12  # 12% system losses
 
 # Cache model training to only run once
 @st.cache_resource
@@ -22,21 +24,45 @@ def train_model():
     df["month"] = df["timestamp"].dt.month
     df["is_daylight"] = (df["ghi"] > 0).astype(int)
     
+    # Add wind cooling effect feature
+    df["wind_cooling"] = df["wind_speed"] * (df["module_temp"] - df["temperature"])
+    
     X = df.drop(["timestamp", "power"], axis=1)
     y = df["power"]
     
-    model = RandomForestRegressor()
-    model.fit(X, y)
-    return model
+    # Hyperparameter tuning
+    param_grid = {
+        'n_estimators': [100, 200],
+        'max_depth': [None, 10, 20],
+        'min_samples_split': [2, 5]
+    }
+    
+    tscv = TimeSeriesSplit(n_splits=5)
+    grid_search = GridSearchCV(
+        estimator=RandomForestRegressor(),
+        param_grid=param_grid,
+        cv=tscv,
+        scoring='neg_mean_absolute_error',
+        n_jobs=-1
+    )
+    grid_search.fit(X, y)
+    
+    return grid_search.best_estimator_
 
-def calculate_math_predictions(X, system_capacity=SYS_CAPACITY, 
-                              temp_coeff=LOSS_COEFF, ref_temp=REF_TEMP):
-    reference_GTI = 1000
+def enhanced_physics_model(X, system_capacity=SYS_CAPACITY, 
+                          temp_coeff=LOSS_COEFF, ref_temp=REF_TEMP):
     gti = X["gti"]
     module_temp = X["module_temp"]
+    wind_cooling = X["wind_cooling"]
     
-    temp_loss = temp_coeff * (module_temp - ref_temp)
-    power = (gti / reference_GTI) * system_capacity * (1 + temp_loss)
+    # Effective temperature with wind cooling
+    effective_temp = module_temp - (wind_cooling * 0.1)  # Empirical coefficient
+    
+    # Temperature derating
+    temp_loss = temp_coeff * (effective_temp - ref_temp)
+    
+    # Power calculation with system losses
+    power = (gti / 1000) * system_capacity * (1 + temp_loss) * (1 - SYSTEM_LOSSES)
     return np.clip(power, 0, system_capacity)
 
 # Streamlit UI
@@ -70,6 +96,9 @@ model = train_model()
 
 # Prediction button
 if st.button("Predict Power Output"):
+    # Calculate wind cooling effect
+    wind_cooling = wind_speed * (module_temp - temperature)
+    
     # Create input dataframe
     input_data = pd.DataFrame([{
         "pressure": pressure,
@@ -82,13 +111,14 @@ if st.button("Predict Power Output"):
         "module_temp": module_temp,
         "hour": hour,
         "month": month,
-        "is_daylight": int(is_daylight)
+        "is_daylight": int(is_daylight),
+        "wind_cooling": wind_cooling
     }])
 
     # Generate predictions
     rf_pred = model.predict(input_data)[0]
-    math_pred = calculate_math_predictions(input_data).values[0]
-    hybrid_pred = (rf_pred + math_pred) / 2
+    physics_pred = enhanced_physics_model(input_data.iloc[0])
+    hybrid_pred = (rf_pred * 0.7) + (physics_pred * 0.3)  # Weighted hybrid
 
     # Display results
     st.subheader("Prediction Results")
@@ -101,8 +131,8 @@ if st.button("Predict Power Output"):
     
     with col2:
         st.metric(label="**Physics-Based Prediction**", 
-                 value=f"{math_pred:.2f} MW",
-                 delta=f"{(math_pred/SYS_CAPACITY*100):.1f}% of capacity")
+                 value=f"{physics_pred:.2f} MW",
+                 delta=f"{(physics_pred/SYS_CAPACITY*100):.1f}% of capacity")
     
     with col3:
         st.metric(label="**Hybrid Prediction**", 
@@ -114,7 +144,9 @@ if st.button("Predict Power Output"):
     
     # Show input summary
     st.subheader("Input Summary")
-    st.dataframe(input_data.style.format("{:.2f}"), use_container_width=True)
+    input_data_display = input_data.copy()
+    input_data_display["wind_cooling_effect"] = wind_cooling * 0.1  # Show actual cooling effect
+    st.dataframe(input_data_display.style.format("{:.2f}"), use_container_width=True)
 
 else:
     st.info("Adjust input parameters in the sidebar and click 'Predict Power Output'")
@@ -126,5 +158,7 @@ with st.sidebar:
     **System Configuration**
     - Max Capacity: {SYS_CAPACITY} MW
     - Temp Coefficient: {LOSS_COEFF*100:.1f}%/°C
+    - System Losses: {SYSTEM_LOSSES*100:.0f}%
     - Reference Temp: {REF_TEMP}°C
+    - Wind Cooling Factor: 0.1
     """)
