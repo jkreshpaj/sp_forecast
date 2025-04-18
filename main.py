@@ -296,7 +296,7 @@ with col2:
 
 with col3:
     st.subheader("🌬️ Wind Speed")
-    st.line_chart(aspd[["cloud_cover"]], use_container_width=True, color="#32CD32")
+    st.line_chart(aspd[["wind_speed"]], use_container_width=True, color="#32CD32")
 
 col1, col2 = st.columns(2)
 with col1:
