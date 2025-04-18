@@ -282,29 +282,30 @@ aspd = pd.DataFrame(forecasts).set_index("timestamp")
 aspd["power_model"] = aspd["power_model"].shift(1)
 aspd["power_physics"] = aspd["power_physics"].shift(1)
 aspd["power_hybrid"] = aspd["power_hybrid"].shift(1)
+aspd.index = pd.to_datetime(aspd.index).strftime('%H:%M %p')
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.subheader("🌡️ Temperature")
-    st.line_chart(aspd[["temperature"]], use_container_width=True)
+    st.line_chart(aspd[["temperature"]], use_container_width=True, color="#FF6347")
 
 with col2:
     st.subheader("☁️  Cloud Cover")
-    st.line_chart(aspd[["cloud_cover"]], use_container_width=True)
+    st.line_chart(aspd[["cloud_cover"]], use_container_width=True, color="#4682B4")
 
 with col3:
     st.subheader("🌬️ Wind Speed")
-    st.line_chart(aspd[["cloud_cover"]], use_container_width=True)
+    st.line_chart(aspd[["cloud_cover"]], use_container_width=True, color="#32CD32")
 
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("🔆 GHI")
-    st.line_chart(aspd[["ghi"]], use_container_width=True)
+    st.line_chart(aspd[["ghi"]], use_container_width=True, color="#FFD700")
 
 with col2:
     st.subheader("📐 GTI")
-    st.line_chart(aspd[["gti"]], use_container_width=True)
+    st.line_chart(aspd[["gti"]], use_container_width=True, color="#FF8C00")
 
 st.subheader("Power forecast")
 st.line_chart(aspd[["power_model", "power_physics", "power_hybrid"]], use_container_width=True)
