@@ -4,6 +4,7 @@ import math
 import json
 import pandas as pd
 import numpy as np
+import pytz
 from datetime import datetime
 from tinydb import TinyDB, Query
 from pvlib.solarposition import get_solarposition
@@ -21,6 +22,7 @@ SYS_CAPACITY = 62.2  # MW
 REF_TEMP = 25  # °C
 LOSS_COEFF = -0.004  # per °C
 SYSTEM_LOSSES = 0.12  # 12% system losses
+TIMEZONE = pytz.timezone("Europe/Tirane")
 
 db = TinyDB('db.json')
 
@@ -232,7 +234,7 @@ def make_predictions():
     return data
 
 forecasts = make_predictions()
-current_hour = datetime.now().strftime('%Y-%m-%d %H:00')
+current_hour = datetime.now(TIMEZONE).strftime('%Y-%m-%d %H:00')
 current_forecast = next((item for item in forecasts if item["timestamp"] == current_hour), None)
 
 col1, col2, col3 = st.columns(3)
@@ -243,7 +245,7 @@ with col1:
         |  **Information** | |
         | ------ | ------ |
         | **📍 Location** | {LATITUDE}, {LONGITUDE} |
-        | **🕒 Time** | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (Tirana/Albania) |
+        | **🕒 Time** | {datetime.now(TIMEZONE).strftime('%Y-%m-%d %H:%M:%S')} (Europe/Tirana) |
         | **💧 Humidity** | {current_forecast['humidity']:.1f}% |
         | **🧭 Wind Direction** | {current_forecast['wind_direction']:.1f}° |
         | **🔆 GHI (Adjusted)** | {current_forecast['ghi']:.2f} W/m² |
