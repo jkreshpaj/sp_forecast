@@ -12,7 +12,7 @@ from pandas import json_normalize
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
 
-METEOBLU_API_KEY="mIgWDuMXxfFsa7p1"
+METEOBLU_API_KEY="6poS7GKcuWLzClbE"
 LATITUDE=40.7948342
 LONGITUDE=19.4022414
 TILT=20  # Tilt angle of your panel in degrees
@@ -86,6 +86,8 @@ def get_weather_data(lat, lon):
 
     response = requests.get(url, params=params)
     data = response.json()
+
+    print(data)
 
     if "data_1h" not in data:
         return []
@@ -188,7 +190,7 @@ def enhanced_physics_model(X, system_capacity=SYS_CAPACITY, temp_coeff=LOSS_COEF
     power = (gti / 1000) * system_capacity * (1 + temp_loss) * (1 - SYSTEM_LOSSES)
     return np.clip(power, 0, system_capacity)
 
-model = train_model()
+# model = train_model()
 
 def make_predictions():
     previous_data = search_today_forecast()
@@ -196,6 +198,7 @@ def make_predictions():
         return previous_data
 
     data = get_weather_data(LATITUDE, LONGITUDE)
+    print(data)
     for entry in data:
         zenith, solar_azimuth = get_solar_angles(LATITUDE, LONGITUDE, entry["timestamp"])
         ghi_clear = haurwitz_model(zenith)
