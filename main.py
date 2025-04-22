@@ -190,7 +190,7 @@ def enhanced_physics_model(X, system_capacity=SYS_CAPACITY, temp_coeff=LOSS_COEF
     power = (gti / 1000) * system_capacity * (1 + temp_loss) * (1 - SYSTEM_LOSSES)
     return np.clip(power, 0, system_capacity)
 
-# model = train_model()
+model = train_model()
 
 def make_predictions():
     previous_data = search_today_forecast()
