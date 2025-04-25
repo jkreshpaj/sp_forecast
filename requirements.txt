@@ -5,3 +5,5 @@ numpy
 tinydb
 pvlib
 pytz
+plotly
+matplotlib
