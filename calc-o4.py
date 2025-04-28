@@ -84,3 +84,5 @@ df['power_physics'] = (
 
 # zero‐out at night
 df.loc[df['is_daylight']==0, 'power_physics'] = 0
+
+df.to_csv('output.csv')
